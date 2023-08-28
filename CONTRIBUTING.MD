@@ -34,7 +34,7 @@ The coding style suggested by the Go community is used in operator-sdk. See the 
 
 Please follow this style to make operator-sdk easy to review, maintain and develop.
 
-### Format of the commit message
+### Format of the commit message and Sign-off ([DCO][dco])
 
 We follow a rough convention for commit messages that is designed to answer two
 questions: what changed and why. The subject line should feature the what and
@@ -60,6 +60,10 @@ The format can be described more formally as follows:
 
 The first line is the subject and should be no longer than 70 characters, the second line is always blank, and other lines should be wrapped at 80 characters. This allows the message to be easier to read on GitHub as well as in various git tools.
 
+A [sign-off][sign-off] is a line towards the end of a commit message that certifies the commit author(s).
+
+For more information on the structuring of commit messages, read the information in the [DCO][dco] application that the Operator SDK projects uses.
+
 ## Documentation
 
 Most contributions involve some sort of documentation. See our [doc contribution guidelines][doc-contrib] for details.
@@ -74,3 +78,5 @@ The operator-sdk maintains a changelog and most contributions should involve a c
 [golang-style-doc]: https://github.com/golang/go/wiki/CodeReviewComments
 [doc-contrib]: https://sdk.operatorframework.io/docs/contribution-guidelines/documentation
 [changelog-contrib]:https://master.sdk.operatorframework.io/docs/contribution-guidelines/changelog
+[dco]: <https://developercertificate.org/>
+[sign-off]: <https://git-scm.com/docs/git-commit#Documentation/git-commit.txt---signoff>
