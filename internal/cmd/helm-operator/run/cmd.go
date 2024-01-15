@@ -157,7 +157,7 @@ func run(cmd *cobra.Command, f *flags.Flags) {
 		os.Exit(1)
 	}
 
-	watchNamespaces := getWatchNamespaces(options.Cache.Namespaces)
+	watchNamespaces := getWatchNamespaces()
 	options.NewCache, err = buildNewCacheFunc(watchNamespaces, ws, options.Scheme)
 	if err != nil {
 		log.Error(err, "Failed to create NewCache function for manager.")
@@ -228,31 +228,24 @@ func exitIfUnsupported(options manager.Options) {
 	}
 }
 
-func getWatchNamespaces(namespaces []string) []string {
-	namespace, found := os.LookupEnv(k8sutil.WatchNamespaceEnvVar)
-	log = log.WithValues("Namespace", namespace)
-	if found {
-		log.V(1).Info(fmt.Sprintf("Setting namespace with value in %s", k8sutil.WatchNamespaceEnvVar))
-		if namespace == metav1.NamespaceAll {
-			log.Info("Watching all namespaces.")
-			return []string{metav1.NamespaceAll}
+func getWatchNamespaces() map[string]cache.Config {
+	namespaces := splitNamespaces(os.Getenv(k8sutil.WatchNamespaceEnvVar))
+
+	var namespaceConfigs map[string]cache.Config
+	if len(namespaces) != 0 {
+		log.Info("watching namespaces", "namespaces", namespaces)
+		namespaceConfigs = make(map[string]cache.Config)
+		for _, namespace := range namespaces {
+			namespaceConfigs[namespace] = cache.Config{}
 		}
-		if strings.Contains(namespace, ",") {
-			log.Info("Watching multiple namespaces.")
-			return strings.Split(namespace, ",")
-		}
-		log.Info("Watching single namespace.")
-		return []string{namespace}
+	} else {
+		log.Info("watching all namespaces")
 	}
-	if len(namespaces) == 0 {
-		log.Info(fmt.Sprintf("Watch namespaces not configured by environment variable %s or file. "+
-			"Watching all namespaces.", k8sutil.WatchNamespaceEnvVar))
-		return []string{metav1.NamespaceAll}
-	}
-	return namespaces
+
+	return namespaceConfigs
 }
 
-func buildNewCacheFunc(watchNamespaces []string, ws []watches.Watch, sch *apimachruntime.Scheme) (cache.NewCacheFunc, error) {
+func buildNewCacheFunc(watchNamespaces map[string]cache.Config, ws []watches.Watch, sch *apimachruntime.Scheme) (cache.NewCacheFunc, error) {
 	selectorsByObject := map[client.Object]cache.ByObject{}
 	chartNames := make([]string, 0, len(ws))
 	for _, w := range ws {
@@ -282,7 +275,19 @@ func buildNewCacheFunc(watchNamespaces []string, ws []watches.Watch, sch *apimac
 	return func(config *rest.Config, opts cache.Options) (cache.Cache, error) {
 		opts.ByObject = selectorsByObject
 		opts.DefaultLabelSelector = defaultSelector
-		opts.Namespaces = watchNamespaces
+		opts.DefaultNamespaces = watchNamespaces
 		return cache.New(config, opts)
 	}, nil
+}
+
+func splitNamespaces(namespaces string) []string {
+	list := strings.Split(namespaces, ",")
+	var out []string
+	for _, ns := range list {
+		trimmed := strings.TrimSpace(ns)
+		if trimmed != "" {
+			out = append(out, trimmed)
+		}
+	}
+	return out
 }
