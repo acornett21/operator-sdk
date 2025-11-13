@@ -191,8 +191,11 @@ func (mh *Memcached) uncommentDefaultKustomizationV4() {
 	kustomization := filepath.Join(mh.ctx.Dir, "config", "default", "kustomization.yaml")
 	log.Info("uncommenting config/default/kustomization.yaml to enable webhooks and ca injection")
 
-	err = kbutil.UncommentCode(kustomization, "#- ../certmanager", "#")
-	pkg.CheckError("uncomment certmanager", err)
+	log.Info(kustomization)
+
+	//todo-adam is this really uncommented already? i think in kubebuilder it's still commented?
+	/*err = kbutil.UncommentCode(kustomization, "#- ../certmanager", "#")
+	pkg.CheckError("uncomment certmanager", err)*/
 
 	err = kbutil.UncommentCode(kustomization, "#- ../prometheus", "#")
 	pkg.CheckError("uncomment prometheus", err)
@@ -203,7 +206,7 @@ func (mh *Memcached) uncommentDefaultKustomizationV4() {
 	pkg.CheckError("uncomment metrics with certmanager", err)
 
 	err = kbutil.UncommentCode(kustomization,
-		`#replacements:
+		`replacements:
 # - source: # Uncomment the following block to enable certificates for metrics
 #     kind: Service
 #     version: v1
@@ -233,7 +236,7 @@ func (mh *Memcached) uncommentDefaultKustomizationV4() {
 #         delimiter: '.'
 #         index: 0
 #         create: true
-#
+
 # - source:
 #     kind: Service
 #     version: v1
@@ -263,78 +266,43 @@ func (mh *Memcached) uncommentDefaultKustomizationV4() {
 #         delimiter: '.'
 #         index: 1
 #         create: true
-#
-# - source: # Uncomment the following block if you have any webhook
-#     kind: Service
-#     version: v1
-#     name: webhook-service
-#     fieldPath: .metadata.name # Name of the service
-#   targets:
-#     - select:
-#         kind: Certificate
-#         group: cert-manager.io
-#         version: v1
-#         name: serving-cert
-#       fieldPaths:
-#         - .spec.dnsNames.0
-#         - .spec.dnsNames.1
-#       options:
-#         delimiter: '.'
-#         index: 0
-#         create: true
-# - source:
-#     kind: Service
-#     version: v1
-#     name: webhook-service
-#     fieldPath: .metadata.namespace # Namespace of the service
-#   targets:
-#     - select:
-#         kind: Certificate
-#         group: cert-manager.io
-#         version: v1
-#         name: serving-cert
-#       fieldPaths:
-#         - .spec.dnsNames.0
-#         - .spec.dnsNames.1
-#       options:
-#         delimiter: '.'
-#         index: 1
-#         create: true
-#`, "#")
+`, "#")
 	pkg.CheckError("uncommented kustomize default config for webhooks and certmanager", err)
 
-	err = kbutil.UncommentCode(kustomization, `# - source: # Uncomment the following block if you have a DefaultingWebhook (--defaulting )
-#     kind: Certificate
-#     group: cert-manager.io
-#     version: v1
-#     name: serving-cert
-#     fieldPath: .metadata.namespace # Namespace of the certificate CR
-#   targets:
-#     - select:
-#         kind: MutatingWebhookConfiguration
-#       fieldPaths:
-#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
-#       options:
-#         delimiter: '/'
-#         index: 0
-#         create: true
-# - source:
-#     kind: Certificate
-#     group: cert-manager.io
-#     version: v1
-#     name: serving-cert
-#     fieldPath: .metadata.name
-#   targets:
-#     - select:
-#         kind: MutatingWebhookConfiguration
-#       fieldPaths:
-#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
-#       options:
-#         delimiter: '/'
-#         index: 1
-#         create: true
-#`, "#")
-	pkg.CheckError("uncommented kustomize default config for defaulting webhooks ", err)
+	//todo-adam is this really uncommented already? i think in kubebuilder it's still commented?
+
+	/*err = kbutil.UncommentCode(kustomization, `# - source: # Uncomment the following block if you have a DefaultingWebhook (--defaulting )
+	#     kind: Certificate
+	#     group: cert-manager.io
+	#     version: v1
+	#     name: serving-cert
+	#     fieldPath: .metadata.namespace # Namespace of the certificate CR
+	#   targets:
+	#     - select:
+	#         kind: MutatingWebhookConfiguration
+	#       fieldPaths:
+	#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+	#       options:
+	#         delimiter: '/'
+	#         index: 0
+	#         create: true
+	# - source:
+	#     kind: Certificate
+	#     group: cert-manager.io
+	#     version: v1
+	#     name: serving-cert
+	#     fieldPath: .metadata.name
+	#   targets:
+	#     - select:
+	#         kind: MutatingWebhookConfiguration
+	#       fieldPaths:
+	#         - .metadata.annotations.[cert-manager.io/inject-ca-from]
+	#       options:
+	#         delimiter: '/'
+	#         index: 1
+	#         create: true
+	#`, "#")
+		pkg.CheckError("uncommented kustomize default config for defaulting webhooks ", err)*/
 }
 
 // uncommentManifestsKustomization will uncomment code in config/manifests/kustomization.yaml
@@ -420,9 +388,6 @@ func (mh *Memcached) implementingMonitoring() {
 	log.Infof("customizing Main")
 	mh.customizingMainMonitoring()
 
-	log.Infof("customizing Dockerfile")
-	mh.customizingDockerfile()
-
 	log.Infof("customizing Makefile")
 	mh.customizingMakefile()
 }
@@ -432,14 +397,14 @@ func (mh *Memcached) implementingMonitoring() {
 func (mh *Memcached) implementingAPIMarkers() {
 	err := kbutil.InsertCode(
 		filepath.Join(mh.ctx.Dir, "api", mh.ctx.Version, fmt.Sprintf("%s_types.go", strings.ToLower(mh.ctx.Kind))),
-		"// Port defines the port that will be used to init the container with the image",
+		"// containerPort defines the port that will be used to init the container with the image",
 		`
 	// +operator-sdk:csv:customresourcedefinitions:type=spec`)
 	pkg.CheckError("inserting Port spec marker", err)
 
 	err = kbutil.InsertCode(
 		filepath.Join(mh.ctx.Dir, "api", mh.ctx.Version, fmt.Sprintf("%s_types.go", strings.ToLower(mh.ctx.Kind))),
-		"// +kubebuilder:validation:ExclusiveMaximum=false",
+		"// +kubebuilder:validation:Minimum=0",
 		`
 	// +operator-sdk:csv:customresourcedefinitions:type=spec`)
 	pkg.CheckError("inserting spec Status", err)
@@ -447,9 +412,11 @@ func (mh *Memcached) implementingAPIMarkers() {
 	log.Infof("implementing MemcachedStatus marker")
 	err = kbutil.ReplaceInFile(
 		filepath.Join(mh.ctx.Dir, "api", mh.ctx.Version, fmt.Sprintf("%s_types.go", strings.ToLower(mh.ctx.Kind))),
-		`	// For further information see: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+		`	// For Kubernetes API conventions, see:
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
 `,
-		`	// For further information see: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
+		`	// For Kubernetes API conventions, see:
+	// https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties
 
 	// Conditions store the status conditions of the Memcached instances
 	// +operator-sdk:csv:customresourcedefinitions:type=status`,
@@ -459,21 +426,17 @@ func (mh *Memcached) implementingAPIMarkers() {
 	err = kbutil.ReplaceInFile(
 		filepath.Join(mh.ctx.Dir, "api", mh.ctx.Version, fmt.Sprintf("%s_types.go", strings.ToLower(mh.ctx.Kind))),
 		`
-	// Size defines the number of Memcached instances
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
-	// +kubebuilder:validation:Minimum=1
-	// +kubebuilder:validation:Maximum=3
-	// +kubebuilder:validation:ExclusiveMaximum=false
+	// size defines the number of Memcached instances
+	// +kubebuilder:default=1
+	// +kubebuilder:validation:Minimum=0
 	// +operator-sdk:csv:customresourcedefinitions:type=spec`,
 		`
-	// The following markers will use OpenAPI v3 schema to validate the value
-	// More info: https://book.kubebuilder.io/reference/markers/crd-validation.html
+	// +kubebuilder:default=1
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=3
 	// +kubebuilder:validation:ExclusiveMaximum=false
 
-	// Size defines the number of Memcached instances
+	// size defines the number of Memcached instances
 	// +operator-sdk:csv:customresourcedefinitions:type=spec`,
 	)
 	pkg.CheckError("updating Size spec marker", err)
@@ -707,12 +670,13 @@ func (mh *Memcached) customizingController() {
 		controllerPrometheusRuleFragment)
 	pkg.CheckError("adding prometheus rule reconciliation", err)
 
-	err = kbutil.InsertCode(controllerPath,
+	//todo-adam I think this can be removed...looks like kubebuilder updated the code
+	/*err = kbutil.InsertCode(controllerPath,
 		`	if *found.Spec.Replicas != size {`,
 		`
 		// Increment MemcachedDeploymentSizeUndesiredCountTotal metric by 1
 		monitoring.MemcachedDeploymentSizeUndesiredCountTotal.Inc()`)
-	pkg.CheckError("adding metric incrementation", err)
+	pkg.CheckError("adding metric incrementation", err)*/
 }
 
 // customizingMain will add comments to main
@@ -746,18 +710,6 @@ func (mh *Memcached) customizingMainMonitoring() {
 		"utilruntime.Must(cachev1alpha1.AddToScheme(scheme))",
 		mainMonitoringFragment)
 	pkg.CheckError("adding monitoring parts", err)
-}
-
-// customizingDockerfile will customize the Dockerfile to include monitoring
-func (mh *Memcached) customizingDockerfile() {
-	dockerfilePath := filepath.Join(mh.ctx.Dir, "Dockerfile")
-
-	// Copy monitoring
-	err := kbutil.InsertCode(dockerfilePath,
-		`COPY internal/ internal/
-`,
-		"\nCOPY monitoring/ monitoring/")
-	pkg.CheckError("adding COPY monitoring/", err)
 }
 
 const createdAt = `createdAt: "2022-11-08T17:26:37Z"`
